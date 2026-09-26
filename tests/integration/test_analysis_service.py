@@ -624,6 +624,21 @@ async def test_sample_documents_not_applicable_with_mocks() -> None:
     services.reranking_service.init_count = 1
     services.llm_service._client = object()
     services.llm_service.init_count = 1
+    # Rebuild consumers so dense retrieval uses the fake embedding, not BGE-M3.
+    services.policy_service = PolicyService(
+        llm_service=services.llm_service,
+        retrieval_service=services.retrieval_service,
+        chunking_service=services.chunking_service,
+        reranking_service=services.reranking_service,
+        settings=settings,
+    )
+    services.evidence_service = EvidenceService(
+        retrieval_service=services.retrieval_service,
+        chunking_service=services.chunking_service,
+        reranking_service=services.reranking_service,
+        llm_service=services.llm_service,
+        settings=settings,
+    )
 
     services.procedure_service.detect_planned_procedure = AsyncMock(
         return_value=ProcedureExtraction(
@@ -652,22 +667,11 @@ async def test_sample_documents_not_applicable_with_mocks() -> None:
                 criteria_tree=None,
             )
         )
-        return await PolicyService(
-            llm_service=services.llm_service,
-            retrieval_service=services.retrieval_service,
-            chunking_service=services.chunking_service,
-            reranking_service=services.reranking_service,
-            settings=settings,
-        )._analyze_candidates(procedure, candidates)
+        return await services.policy_service._analyze_candidates(
+            procedure, candidates
+        )
 
     services.policy_service.analyze_policy = analyze_policy  # type: ignore[method-assign]
-    services.evidence_service = EvidenceService(
-        retrieval_service=services.retrieval_service,
-        chunking_service=services.chunking_service,
-        reranking_service=services.reranking_service,
-        llm_service=services.llm_service,
-        settings=settings,
-    )
 
     result = await AnalysisService(services).analyze(PATIENT_PDF, POLICY_PDF)
     assert result.overall_status == ReadinessStatus.NOT_APPLICABLE
