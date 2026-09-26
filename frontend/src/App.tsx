@@ -1,60 +1,96 @@
-import { useRef, useState } from "react";
-import { AnalysisError, analyzeAuthorization } from "./api/analyze";
+import { useEffect, useRef, useState } from "react";
+import { AnalysisError } from "./api/analyze";
+import { createJob, getJob } from "./api/jobs";
 import UploadPanel from "./components/UploadPanel";
-import AnalysisLoading from "./components/AnalysisLoading";
 import ReviewWorkspace from "./components/ReviewWorkspace";
-import type { AnalysisResponse } from "./types/analysis";
+import CaseQueue from "./components/CaseQueue";
+import { useJobQueue } from "./hooks/useJobQueue";
+import type { JobDetail, JobSummary } from "./types/jobs";
 
 export default function App() {
   const [patient, setPatient] = useState<File | null>(null);
   const [policy, setPolicy] = useState<File | null>(null);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [result, setResult] = useState<AnalysisResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [review, setReview] = useState<JobDetail | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
-  const submitting = useRef(false);
-  const resultFocus = useRef<HTMLDivElement>(null);
-  const busy = startedAt !== null;
-  async function run(event: React.SubmitEvent<HTMLFormElement>) {
+  const submitLock = useRef(false);
+  const detailRequest = useRef<AbortController | null>(null);
+  const main = useRef<HTMLElement>(null);
+  const queue = useJobQueue();
+  const atCapacity =
+    !!queue.data && queue.data.active_count >= queue.data.max_active_jobs;
+  useEffect(() => () => detailRequest.current?.abort(), []);
+  function focusMain() {
+    window.requestAnimationFrame(() => {
+      main.current?.focus();
+      window.scrollTo({ top: 0 });
+    });
+  }
+  async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current) return;
+    if (submitLock.current || atCapacity) return;
     if (!patient || !policy) {
-      setError("Select both a patient chart PDF and a policy PDF.");
+      setError("Select a patient chart and policy PDF.");
       return;
     }
-    submitting.current = true;
+    submitLock.current = true;
+    setSubmitting(true);
     setError("");
-    setStartedAt(Date.now());
-    setAnnouncement("Analyzing authorization. This may take several minutes.");
     try {
-      const response = await analyzeAuthorization(patient, policy);
-      setResult(response);
+      const job = await createJob(patient, policy);
+      queue.accepted(job);
+      setPatient(null);
+      setPolicy(null);
       setAnnouncement(
-        `Analysis complete: ${response.overall_status.replaceAll("_", " ")}.`,
+        "Case submitted. You can start another prior authorization.",
       );
-      window.requestAnimationFrame(() => {
-        resultFocus.current?.focus();
-        window.scrollTo({ top: 0 });
-      });
     } catch (cause) {
       setError(
         cause instanceof AnalysisError
           ? cause.message
-          : "Analysis could not be completed. Please try again.",
+          : "Unable to submit this case.",
       );
-      setAnnouncement("Analysis could not be completed.");
+      // Refresh after an ambiguous POST failure or capacity race. Never retry POST.
+      void queue.refresh();
     } finally {
-      submitting.current = false;
-      setStartedAt(null);
+      submitLock.current = false;
+      setSubmitting(false);
     }
   }
-  function reset() {
-    setResult(null);
-    setPatient(null);
-    setPolicy(null);
+  async function openReview(job: JobSummary) {
+    if (opening) return;
+    const abort = new AbortController();
+    detailRequest.current = abort;
+    setOpening(job.job_id);
     setError("");
-    setAnnouncement("Ready for a new verification.");
-    window.requestAnimationFrame(() => resultFocus.current?.focus());
+    try {
+      const detail = await getJob(job.job_id, abort.signal);
+      if (abort.signal.aborted) return;
+      if (detail.status !== "COMPLETED" || !detail.result)
+        throw new AnalysisError("This case is not ready for review.");
+      setReview(detail);
+      setAnnouncement(
+        `Prior authorization review: ${detail.overall_status?.replaceAll("_", " ")}.`,
+      );
+      focusMain();
+    } catch (cause) {
+      if (!abort.signal.aborted)
+        setError(
+          cause instanceof AnalysisError
+            ? cause.message
+            : "Unable to open this case.",
+        );
+    } finally {
+      setOpening(null);
+    }
+  }
+  function backToCases() {
+    setReview(null);
+    setError("");
+    void queue.refresh();
+    focusMain();
   }
   return (
     <>
@@ -63,60 +99,61 @@ export default function App() {
       </a>
       <header className="app-header">
         <div className="header-inner">
-          <a className="brand" href="/" aria-label="PriorAuthVerifier home">
+          <a
+            className="brand"
+            href="/"
+            onClick={(event) => {
+              event.preventDefault();
+              backToCases();
+            }}
+            aria-label="PriorAuthVerifier home"
+          >
             <span className="brand-mark" aria-hidden="true">
               P<span>✓</span>
             </span>
             <span>
-              PriorAuthVerifier<small>Authorization Review</small>
+              PriorAuthVerifier<small>Prior Authorization</small>
             </span>
           </a>
           <span className="header-note">
-            <span aria-hidden="true" className="grounded-dot" />
-            Evidence-grounded review
+            {queue.data ? `${queue.data.active_count} active` : ""}
           </span>
         </div>
       </header>
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
       </div>
-      <main id="main" tabIndex={-1} ref={resultFocus}>
-        {result ? (
+      <main id="main" tabIndex={-1} ref={main}>
+        {review?.result ? (
           <ReviewWorkspace
-            result={result}
-            patientName={patient?.name ?? ""}
-            policyName={policy?.name ?? ""}
-            onReset={reset}
+            result={review.result}
+            patientName={review.patient_filename}
+            policyName={review.policy_filename}
+            onReset={backToCases}
           />
         ) : (
           <>
             <div className="page-heading">
-              <p className="eyebrow">DOCUMENT VERIFICATION</p>
-              <h1>Verify authorization readiness</h1>
-              <p>
-                Compare a patient chart against the uploaded medical-necessity
-                policy.
-              </p>
+              <h1>New prior authorization</h1>
+              <p>Upload the patient chart and policy.</p>
             </div>
-            <form onSubmit={run} aria-busy={busy}>
+            <form onSubmit={submit} aria-busy={submitting}>
               <div className="upload-grid">
                 <UploadPanel
+                  title="Patient chart"
                   number="01"
-                  title="Patient Chart"
-                  subtitle="Clinical notes and supporting documentation"
                   file={patient}
-                  disabled={busy}
+                  disabled={submitting}
                   onChange={(file) => {
                     setPatient(file);
                     setError("");
                   }}
                 />
                 <UploadPanel
+                  title="Policy / guideline"
                   number="02"
-                  title="Policy / Guideline"
-                  subtitle="Medical-necessity criteria for the procedure"
                   file={policy}
-                  disabled={busy}
+                  disabled={submitting}
                   onChange={(file) => {
                     setPolicy(file);
                     setError("");
@@ -124,57 +161,59 @@ export default function App() {
                 />
               </div>
               <div className="action-bar">
-                <p className="privacy-note">
-                  <span aria-hidden="true">◇</span> Files are processed for this
-                  analysis and are not stored by the browser.
-                </p>
+                <div>
+                  {atCapacity && (
+                    <p className="capacity-notice" role="status">
+                      <strong>
+                        {queue.data?.active_count} active prior authorizations
+                      </strong>
+                      <span>
+                        Wait for a case to finish before starting another.
+                      </span>
+                    </p>
+                  )}
+                </div>
                 <button
                   className="primary"
+                  disabled={
+                    !patient ||
+                    !policy ||
+                    submitting ||
+                    atCapacity ||
+                    !queue.data ||
+                    !!queue.error
+                  }
                   type="submit"
-                  disabled={!patient || !policy || busy}
                 >
-                  {busy ? "Verification in progress" : "Run verification"}
+                  {submitting ? "Submitting…" : "Start verification"}
                   <span aria-hidden="true">→</span>
                 </button>
               </div>
-              {error && (
-                <div className="error-panel" role="alert">
-                  <strong>Unable to complete verification</strong>
-                  <p>{error}</p>
-                  <span className="small">
-                    Your selected files are still available. Run verification to
-                    try again.
-                  </span>
-                </div>
-              )}
-              {startedAt !== null && <AnalysisLoading startedAt={startedAt} />}
             </form>
-            {!busy && (
-              <section className="workflow-note">
-                <span className="eyebrow">WHAT THIS REVIEW INCLUDES</span>
-                <div>
-                  <p>
-                    <strong>Procedure identification</strong>
-                    <span>Find the planned procedure in the chart.</span>
-                  </p>
-                  <p>
-                    <strong>Policy comparison</strong>
-                    <span>Evaluate documentation against policy criteria.</span>
-                  </p>
-                  <p>
-                    <strong>Readiness review</strong>
-                    <span>Surface findings, evidence, and next steps.</span>
-                  </p>
-                </div>
-              </section>
+            {error && (
+              <div className="error-panel" role="alert">
+                {error}
+              </div>
             )}
+            {queue.error && (
+              <div className="error-panel" role="status">
+                {queue.error}{" "}
+                <button
+                  className="text-button"
+                  onClick={() => void queue.refresh()}
+                >
+                  Refresh
+                </button>
+              </div>
+            )}
+            <CaseQueue
+              data={queue.data}
+              opening={opening}
+              onReview={(job) => void openReview(job)}
+            />
           </>
         )}
       </main>
-      <footer className="app-footer">
-        <span>PriorAuthVerifier</span>
-        <span>Documentation review · Clinical judgment remains essential</span>
-      </footer>
     </>
   );
 }

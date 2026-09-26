@@ -35,15 +35,20 @@ function Evidence({
   return (
     <>
       {citations.map((citation, index) => (
-        <blockquote key={index}>
-          <p>“{citation.text}”</p>
-          <footer>
+        <div className="citation" key={index}>
+          <p className="citation-source">
             Patient Chart
             {citation.page_number !== null && ` · Page ${citation.page_number}`}
             {citation.document_date &&
               ` · ${formatDate(citation.document_date)}`}
-          </footer>
-        </blockquote>
+          </p>
+          <details className="source-evidence">
+            <summary>Show source evidence</summary>
+            <blockquote>
+              <p>“{citation.text}”</p>
+            </blockquote>
+          </details>
+        </div>
       ))}
       {warnings.map((warning, index) => (
         <p className="warning-text" key={index}>
@@ -69,7 +74,7 @@ function ClinicalEvidence({ criteria }: { criteria: CriterionEvaluation[] }) {
   return (
     <section className="surface">
       <div className="section-heading">
-        <h2>Clinical Evidence</h2>
+        <h2>Clinical evidence</h2>
         <span className="count">{criteria.length} evaluated</span>
       </div>
       {criteria.length === 0 ? (
@@ -160,12 +165,13 @@ export default function ReviewWorkspace({
     <>
       <div className="page-heading review-heading">
         <div>
-          <p className="eyebrow">AUTHORIZATION REVIEW</p>
-          <h1>Verification results</h1>
-          <p>Evidence and requirements from the uploaded documents.</p>
+          <button className="text-button back-button" onClick={onReset}>
+            ← Back to prior authorization cases
+          </button>
+          <h1>Prior authorization review</h1>
         </div>
         <button className="secondary" onClick={onReset}>
-          New verification <span aria-hidden="true">↗</span>
+          New prior authorization <span aria-hidden="true">↗</span>
         </button>
       </div>
       <section
@@ -260,7 +266,6 @@ export default function ReviewWorkspace({
         </div>
         <aside className="review-aside">
           <section className="surface next-step">
-            <span className="eyebrow">FOLLOW-UP</span>
             <h2>Recommended next step</h2>
             <p>
               {result.next_step || "No next step was provided by the analysis."}
@@ -270,8 +275,8 @@ export default function ReviewWorkspace({
         </aside>
       </div>
       <p className="disclaimer">
-        This review evaluates documentation against the uploaded policy and does
-        not guarantee payer authorization.
+        Policy review support only; final authorization decisions remain with
+        the payer.
       </p>
     </>
   );

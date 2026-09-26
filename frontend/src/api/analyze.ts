@@ -50,7 +50,7 @@ function evaluation(value: unknown): boolean {
     )
   );
 }
-function isAnalysis(value: unknown): value is AnalysisResponse {
+export function isAnalysis(value: unknown): value is AnalysisResponse {
   return (
     record(value) &&
     record(value.procedure) &&

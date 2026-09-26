@@ -26,7 +26,6 @@ function sizeLabel(bytes: number) {
 }
 interface Props {
   title: string;
-  subtitle: string;
   number: string;
   file: File | null;
   disabled: boolean;
@@ -34,7 +33,6 @@ interface Props {
 }
 export default function UploadPanel({
   title,
-  subtitle,
   number,
   file,
   disabled,
@@ -60,7 +58,6 @@ export default function UploadPanel({
         <span className="step-number">{number}</span>
         <div>
           <h2 id={`${id}-title`}>{title}</h2>
-          <p>{subtitle}</p>
         </div>
       </div>
       <div
@@ -111,7 +108,6 @@ export default function UploadPanel({
         ) : (
           <>
             <strong>Drop your PDF here</strong>
-            <span className="muted">or select a file from your computer</span>
             <button
               type="button"
               className="secondary"
@@ -119,7 +115,7 @@ export default function UploadPanel({
               onClick={() => input.current?.click()}
             >
               Choose{" "}
-              {title === "Patient Chart" ? "patient chart" : "policy PDF"}
+              {title === "Patient chart" ? "patient chart" : "policy PDF"}
             </button>
           </>
         )}
@@ -141,10 +137,7 @@ export default function UploadPanel({
           hidden
         />
       </div>
-      <div className="upload-foot">
-        PDF format only{" "}
-        <span>{file ? "Document selected" : "One document per upload"}</span>
-      </div>
+      <div className="upload-foot">PDF only</div>
       {error && (
         <p className="field-error" role="alert" id={`${id}-error`}>
           {error}

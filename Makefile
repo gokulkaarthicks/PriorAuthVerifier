@@ -21,6 +21,8 @@ typecheck:
 	uv run mypy app
 
 check:
-	uv run pytest
 	uv run ruff check .
 	uv run mypy app
+	uv run pytest
+	cd frontend && npm run build
+	cd frontend && npm test
