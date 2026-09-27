@@ -22,7 +22,7 @@ _MIN_HEADING_SCORE_LARGE = 4.0
 _MIN_HEADING_SCORE_BODY = 6.0
 _NUMBERED_HEADING_RE = re.compile(
     r"^(?:"
-    r"SECTION\s+\d+\s*[:.\-–-]?\s*\S|"
+    r"SECTION\s+\d+\s*[:.\-–—]?\s*\S|"
     r"\d+(?:\.\d+)+\s+\S|"
     r"\d+[.)]\s+\S|"
     r"[A-Z]\.\s+\S"
@@ -35,7 +35,7 @@ _MAJOR_NUMBERED_RE = re.compile(
 )
 _SUB_NUMBERED_RE = re.compile(r"^\d+\.\d+", re.IGNORECASE)
 _LABEL_VALUE_RE = re.compile(r"^[^:\n]{1,60}:\s+\S.{8,}")
-_SEPARATOR_RE = re.compile(r"^[=_\-–-*]{6,}\s*$")
+_SEPARATOR_RE = re.compile(r"^[=_\-–—*]{6,}\s*$")
 _COLON_ONLY_HEADING_RE = re.compile(r"^.{2,80}:\s*$")
 
 

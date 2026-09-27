@@ -61,7 +61,7 @@ item's candidates. If none support the judgment, return an empty \
 evidence_candidate_ids list.
 2. Never use outside medical knowledge or invent undocumented facts.
 3. Use LOCAL POLICY CONTEXT to interpret each atom. Parent definitions and \
-source policy wording define the condition - do not require the chart to \
+source policy wording define the condition — do not require the chart to \
 repeat exact diagnosis labels when the policy definition plus patient facts \
 establish it.
 4. MET requires at least one supporting evidence_candidate_id.

@@ -830,7 +830,7 @@ class RetrievalService:
         raw = raw.split("\n", 1)[0]
         raw = _CRID_RE.sub(" ", raw)
         raw = re.sub(
-            r"[-–-]\s*non-?indications?\b.*$",
+            r"[-–—]\s*non-?indications?\b.*$",
             "",
             raw,
             flags=re.IGNORECASE,

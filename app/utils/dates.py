@@ -13,7 +13,7 @@ _MONTH_NAME_RE = re.compile(
     r"Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
     r"Dec(?:ember)?"
-    r")\s+(\d{1,2})(?:\s*[–--]\s*(\d{1,2}))?,?\s+((?:19|20)\d{2})\b",
+    r")\s+(\d{1,2})(?:\s*[–—-]\s*(\d{1,2}))?,?\s+((?:19|20)\d{2})\b",
     re.IGNORECASE,
 )
 # PDF line breaks often split "November 14," from "2025" onto the next line.
@@ -22,7 +22,7 @@ _MONTH_NAME_BROKEN_YEAR_RE = re.compile(
     r"Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
     r"Dec(?:ember)?"
-    r")\s+(\d{1,2})(?:\s*[–--]\s*(\d{1,2}))?,?\s*((?:19|20)\d{2})\b",
+    r")\s+(\d{1,2})(?:\s*[–—-]\s*(\d{1,2}))?,?\s*((?:19|20)\d{2})\b",
     re.IGNORECASE,
 )
 
