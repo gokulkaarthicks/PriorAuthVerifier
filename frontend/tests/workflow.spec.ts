@@ -148,7 +148,7 @@ test("multiple submissions stay listed while queued and analyzing; form stays av
   await page.clock.fastForward(65000);
   await expect(page.getByText(/Analyzing/)).toContainText("01:");
   await expect(
-    page.getByRole("heading", { name: "New prior authorization", exact: true }),
+    page.getByRole("heading", { name: "New Prior Authorization", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Choose patient chart" }),
@@ -185,7 +185,7 @@ test("review/back/new/reload retain server history and open the correct result",
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "Prior authorization review",
+      name: "Prior Authorization review",
       exact: true,
     }),
   ).toBeVisible();
@@ -194,7 +194,7 @@ test("review/back/new/reload retain server history and open the correct result",
     page.getByRole("heading", { name: "Blocking policy findings" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Patient Chart · Page 4 · Nov 12, 2025"),
+    page.getByText("Patient chart · Page 4 · Nov 12, 2025"),
   ).toBeVisible();
   const quote = page.getByText(
     "“Patient remains fully asymptomatic with no functional limitation.”",
@@ -205,7 +205,7 @@ test("review/back/new/reload retain server history and open the correct result",
   await expect(quote).toBeVisible();
   await expect(page.locator("body")).not.toContainText("internal-");
   await page
-    .getByRole("button", { name: "← Back to prior authorization cases" })
+    .getByRole("button", { name: "← Back to Prior Authorization cases" })
     .click();
   await expect(
     page.getByRole("button", { name: "Review alice.pdf" }),
@@ -213,7 +213,7 @@ test("review/back/new/reload retain server history and open the correct result",
   await expect(startButton(page)).toBeEnabled(); // Upload draft also survives review.
   await page.getByRole("button", { name: "Review bob.pdf" }).click();
   await expect(page.getByText("12345", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "New prior authorization" }).click();
+  await page.getByRole("button", { name: "New Prior Authorization" }).click();
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Review alice.pdf" }),
@@ -396,7 +396,7 @@ test("desktop queue stays compact and source evidence is collapsed", async ({
   });
   await page.getByRole("button", { name: "Review not-ready.pdf" }).click();
   await expect(
-    page.getByRole("heading", { name: "Prior authorization review" }),
+    page.getByRole("heading", { name: "Prior Authorization review" }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/review-desktop.png",

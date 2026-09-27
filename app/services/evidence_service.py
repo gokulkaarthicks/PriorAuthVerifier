@@ -356,7 +356,7 @@ class EvidenceService:
         ancestors: list[CriterionNode],
         siblings: list[CriterionNode],
     ) -> str:
-        """Minimal parent/sibling/source context — not the whole criteria tree."""
+        """Minimal parent/sibling/source context, not the whole criteria tree."""
         lines: list[str] = []
         parent = next(
             (
@@ -388,7 +388,7 @@ class EvidenceService:
             and (item.description or "").strip()
         ]
         if sibling_defs:
-            # Keep sibling context small — definitions needed to interpret OR/AND.
+            # Keep sibling context small; definitions needed to interpret OR/AND.
             preview = sibling_defs[:6]
             lines.append("sibling_conditions: " + "; ".join(preview))
 
@@ -609,7 +609,7 @@ class EvidenceService:
         """Optionally drop dated evidence clearly outside an explicit window.
 
         Unknown-date evidence is kept. Without an analysis reference date the
-        window cannot be applied — never invent a runtime clock date.
+        window cannot be applied; never invent a runtime clock date.
         """
         months = parse_within_months_window(atom.temporal_requirement)
         if months is None or reference_date is None:

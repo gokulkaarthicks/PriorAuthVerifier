@@ -1,7 +1,7 @@
 """Unit tests for RetrievalService.
 
 Hybrid-index tests below operate on small pre-selected fixture chunks. They
-validate BM25 / dense / RRF primitives used after section narrowing — they do
+validate BM25 / dense / RRF primitives used after section narrowing; they do
 not recreate full-document chunk→embed orchestration.
 """
 

@@ -1,6 +1,6 @@
 """Unit tests for lightweight Hugging Face model preparation.
 
-All Hugging Face calls are mocked — these tests download ZERO bytes.
+All Hugging Face calls are mocked; these tests download ZERO bytes.
 """
 
 from __future__ import annotations

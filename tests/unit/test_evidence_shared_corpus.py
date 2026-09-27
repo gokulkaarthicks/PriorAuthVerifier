@@ -166,7 +166,7 @@ def test_candidate_id_hydrates_exact_evidence_citation() -> None:
 def test_citation_metadata_cannot_be_modified_by_sol() -> None:
     service = _service()
     chunk = _chunk("p1", "authoritative chunk text", page=7, document_date="2023-05-01")
-    # Sol invents different page/date/text/chunk_id — validation overwrites.
+    # Sol invents different page/date/text/chunk_id; validation overwrites.
     forged = EvidenceCitation(
         chunk_id="p1",
         text="forged text from model",

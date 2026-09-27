@@ -252,7 +252,7 @@ def test_or_with_all_missing_not_ready() -> None:
         ),
     )
     assert result.overall_status == ReadinessStatus.NOT_READY
-    # OR alternatives are not cumulative — surface one closest branch only.
+    # OR alternatives are not cumulative; surface one closest branch only.
     assert [item.criterion_id for item in result.missing_items] == ["c1"]
 
 

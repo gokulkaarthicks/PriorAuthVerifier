@@ -27,7 +27,7 @@ test("one live UHC job through the queue", async ({ page }) => {
   await page.getByRole("button", { name: "Review patient.pdf" }).click();
   await expect(
     page.getByRole("heading", {
-      name: "Prior authorization review",
+      name: "Prior Authorization review",
       exact: true,
     }),
   ).toBeVisible();

@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     EVIDENCE_SECTION_BM25_TOP_K: int = 40
     EVIDENCE_DENSE_TOP_K: int = 10
     EVIDENCE_RERANK_TOP_K: int = 5
-    # Safety cap only — token budget is the primary evidence packing control.
+    # Safety cap only; token budget is the primary evidence packing control.
     EVIDENCE_SOL_MAX_ITEMS_PER_BATCH: int = Field(default=40, ge=1)
     EVIDENCE_SOL_MAX_CONCURRENCY: int = Field(default=3, ge=1)
 

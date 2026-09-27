@@ -439,7 +439,7 @@ class RetrievalService:
         """Select sections by BGE-M3 similarity over heading strings only.
 
         Dense/BGE-M3 never sees parent headings, body previews, or section
-        bodies at this stage — only the heading text.
+        bodies at this stage; only the heading text.
         """
         headed = [
             section
@@ -511,7 +511,7 @@ class RetrievalService:
     ) -> list[Section]:
         """Expand document-local continuation around governing sections.
 
-        Expansion is structural and ordered by section position — never by
+        Expansion is structural and ordered by section position, never by
         global heading / ``parent_heading`` string equality. Contiguous
         continuation sections (including repeated running-header wrappers)
         stay attached until a peer policy topic, References, or different
@@ -647,7 +647,7 @@ class RetrievalService:
         best_key = max((key for key, _ in scored), default=(0, 0.0))
         # Prefer the strongest procedure-name matches as the governing block;
         # weaker semantic neighbors (e.g. leadless vs transvenous pacemaker)
-        # must not define the primary CRID set — break ties by stem Jaccard so
+        # must not define the primary CRID set; break ties by stem Jaccard so
         # shared document-family tokens (e.g. "cardiac") do not elevate them.
         primary_seeds = (
             [section for key, section in scored if key == best_key]
@@ -717,7 +717,7 @@ class RetrievalService:
             effective_crid = own_crid or crid
 
             if effective_crid is None:
-                # Untitled / general requirements — keep.
+                # Untitled / general requirements: keep.
                 kept.append(section)
                 continue
 
@@ -866,7 +866,7 @@ class RetrievalService:
 
     @staticmethod
     def _is_codes_or_global_identity_section(section: Section) -> bool:
-        """True only for CPT/code-table identity sections — not indication bodies.
+        """True only for CPT/code-table identity sections, not indication bodies.
 
         Indication blocks often mention a CPT parenthetically; those must not
         be treated as global identity and thereby bypass CRID filtering.

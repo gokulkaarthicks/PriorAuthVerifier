@@ -1327,7 +1327,7 @@ async def test_evidence_reuses_parsed_sections_without_pdf_parse() -> None:
         ],
     )
     service, *_ = _service(llm_response=batch)
-    # EvidenceService has no PDF/parse dependency — only already-parsed sections.
+    # EvidenceService has no PDF/parse dependency; only already-parsed sections.
     assert not hasattr(service, "_pdf_service")
     assert not hasattr(service, "parse")
     result = await service.evaluate_evidence(_policy_result(), sections)

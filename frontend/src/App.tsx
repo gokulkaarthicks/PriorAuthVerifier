@@ -44,7 +44,7 @@ export default function App() {
       setPatient(null);
       setPolicy(null);
       setAnnouncement(
-        "Case submitted. You can start another prior authorization.",
+        "Case submitted. You can start another Prior Authorization.",
       );
     } catch (cause) {
       setError(
@@ -72,7 +72,7 @@ export default function App() {
         throw new AnalysisError("This case is not ready for review.");
       setReview(detail);
       setAnnouncement(
-        `Prior authorization review: ${detail.overall_status?.replaceAll("_", " ")}.`,
+        `Prior Authorization review: ${detail.overall_status?.replaceAll("_", " ")}.`,
       );
       focusMain();
     } catch (cause) {
@@ -134,7 +134,7 @@ export default function App() {
         ) : (
           <>
             <div className="page-heading">
-              <h1>New prior authorization</h1>
+              <h1>New Prior Authorization</h1>
               <p>Upload the patient chart and policy.</p>
             </div>
             <form onSubmit={submit} aria-busy={submitting}>
@@ -165,7 +165,7 @@ export default function App() {
                   {atCapacity && (
                     <p className="capacity-notice" role="status">
                       <strong>
-                        {queue.data?.active_count} active prior authorizations
+                        {queue.data?.active_count} active Prior Authorizations
                       </strong>
                       <span>
                         Wait for a case to finish before starting another.

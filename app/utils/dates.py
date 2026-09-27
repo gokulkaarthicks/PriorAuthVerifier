@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import date, datetime
 
-# Explicit calendar dates only — no relative phrases like "yesterday".
+# Explicit calendar dates only; no relative phrases like "yesterday".
 _ISO_DATE_RE = re.compile(r"\b((?:19|20)\d{2})-(\d{2})-(\d{2})\b")
 _US_DATE_RE = re.compile(r"\b(\d{1,2})/(\d{1,2})/((?:19|20)\d{2})\b")
 _MONTH_NAME_RE = re.compile(
@@ -182,7 +182,7 @@ def extract_analysis_reference_date(*texts: str | None) -> str | None:
     if planned_dates:
         return planned_dates[0]
     if clinical_dates:
-        # Latest relevant chart date — not the earliest/first encounter.
+        # Latest relevant chart date, not the earliest/first encounter.
         return max(clinical_dates)
     return None
 

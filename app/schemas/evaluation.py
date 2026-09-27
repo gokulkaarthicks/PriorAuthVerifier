@@ -50,19 +50,19 @@ class CriterionEvaluation(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def evidence_chunk_ids(self) -> list[str]:
-        """Derived from ``evidence`` — never maintained independently."""
+        """Derived from ``evidence``; never maintained independently."""
         return [item.chunk_id for item in self.evidence]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def evidence_text(self) -> list[str]:
-        """Derived from ``evidence`` — never maintained independently."""
+        """Derived from ``evidence``; never maintained independently."""
         return [item.text for item in self.evidence]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def page_numbers(self) -> list[int]:
-        """Derived from ``evidence`` — never maintained independently."""
+        """Derived from ``evidence``; never maintained independently."""
         return [
             int(item.page_number)
             for item in self.evidence
@@ -213,7 +213,7 @@ def enrich_citation(
     """Fill page/date from the source chunk so metadata cannot drift apart.
 
     Prefer chunk metadata for page/date/text alignment. ``document_date`` comes
-    only from the source chunk — never from the runtime clock.
+    only from the source chunk; never from the runtime clock.
     """
     if chunk is None:
         return citation

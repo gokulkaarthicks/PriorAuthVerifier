@@ -29,7 +29,7 @@ export default function CaseQueue({
     <section className="case-queue" aria-labelledby="cases-heading">
       <div className="queue-heading">
         <h2 id="cases-heading">
-          Prior authorization cases{" "}
+          Prior Authorization cases{" "}
           <span className="count">{data?.jobs.length ?? 0}</span>
         </h2>
         <span className="capacity" role="status">
@@ -127,7 +127,7 @@ export default function CaseQueue({
                             )}
                           </>
                         ) : (
-                          <span className="muted">—</span>
+                          <span className="muted">-</span>
                         )}
                       </td>
                     </tr>

@@ -1,6 +1,6 @@
 # PriorAuthVerifier
 
-PriorAuthVerifier is a prior-authorization review tool that compares a patient
+PriorAuthVerifier is a Prior Authorization review tool that compares a patient
 chart against an uploaded medical-necessity policy.
 
 It identifies the planned procedure, retrieves the relevant policy criteria,

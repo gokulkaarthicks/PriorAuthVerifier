@@ -39,7 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=resolved.APP_NAME,
         version="0.1.0",
         description=(
-            "Prior authorization readiness analysis for patient charts "
+            "Prior Authorization readiness analysis for patient charts "
             "and medical-necessity policies."
         ),
     )

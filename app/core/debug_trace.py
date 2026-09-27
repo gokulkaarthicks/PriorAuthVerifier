@@ -36,5 +36,5 @@ def write_json(name: str, payload: Any, *, analysis_id: str | None = None) -> No
             encoding="utf-8",
         )
         logger.info("debug_trace_written", name=name, analysis_id=analysis_id)
-    except Exception as exc:  # noqa: BLE001 — never break analysis for traces
+    except Exception as exc:  # noqa: BLE001  # never break analysis for traces
         logger.warning("debug_trace_write_failed", name=name, error=str(exc))

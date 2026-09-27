@@ -2,10 +2,10 @@
 """Prepare local Hugging Face embedding and reranker models for runtime use.
 
 Cached models are verified against the runtime-required artifact set only.
-A partial snapshot with all required files counts as cached — excluded
+A partial snapshot with all required files counts as cached; excluded
 repository assets (ONNX, images, docs, sparse/ColBERT weights) are ignored.
 
-SentenceTransformer / FlagReranker are never constructed here — runtime
+SentenceTransformer / FlagReranker are never constructed here; runtime
 services load them lazily on first inference.
 
 Embedding and reranker preparation run concurrently via ThreadPoolExecutor.

@@ -1,4 +1,4 @@
-"""Prior-authorization analysis HTTP endpoints."""
+"""Prior Authorization analysis HTTP endpoints."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _request_settings(request: Request) -> Settings:
 @router.post(
     "/analyze",
     response_model=AnalysisResponse,
-    summary="Analyze prior authorization readiness",
+    summary="Analyze Prior Authorization readiness",
     description=(
         "Analyzes a patient chart against an uploaded medical-necessity policy."
     ),

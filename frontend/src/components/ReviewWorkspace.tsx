@@ -37,7 +37,7 @@ function Evidence({
       {citations.map((citation, index) => (
         <div className="citation" key={index}>
           <p className="citation-source">
-            Patient Chart
+            Patient chart
             {citation.page_number !== null && ` · Page ${citation.page_number}`}
             {citation.document_date &&
               ` · ${formatDate(citation.document_date)}`}
@@ -166,12 +166,12 @@ export default function ReviewWorkspace({
       <div className="page-heading review-heading">
         <div>
           <button className="text-button back-button" onClick={onReset}>
-            ← Back to prior authorization cases
+            ← Back to Prior Authorization cases
           </button>
-          <h1>Prior authorization review</h1>
+          <h1>Prior Authorization review</h1>
         </div>
         <button className="secondary" onClick={onReset}>
-          New prior authorization <span aria-hidden="true">↗</span>
+          New Prior Authorization <span aria-hidden="true">↗</span>
         </button>
       </div>
       <section
@@ -207,10 +207,10 @@ export default function ReviewWorkspace({
         </div>
         <div className="source-files">
           <span>
-            <strong>Patient Chart</strong> {patientName}
+            <strong>Patient chart</strong> {patientName}
           </span>
           <span>
-            <strong>Policy / Guideline</strong> {policyName}
+            <strong>Policy / guideline</strong> {policyName}
           </span>
         </div>
       </section>
