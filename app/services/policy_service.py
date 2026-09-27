@@ -84,7 +84,7 @@ If X is not established, the blocking condition is not triggered.
 and a short exact source_quote (<=200 characters) from that excerpt.
 9. Do NOT output chunk UUIDs, page numbers, or full excerpt reproductions.
 10. AND/OR group nodes need only id, node_type, optional short description, \
-and children — never source grounding fields.
+and children - never source grounding fields.
 11. Extract explicit temporal requirements only when stated.
 12. Do not invent requirements.
 13. Do not compare payer identity or policy publisher.
