@@ -1,13 +1,18 @@
 import type {
   AnalysisResponse,
-  CriterionEvaluation,
+  DisplayStatus,
   EvidenceCitation,
   ExclusionEvaluation,
 } from "../types/analysis";
+import {
+  curateResultView,
+  type PrimaryCriterion,
+} from "../utils/curateResultView";
 
 export function StatusBadge({ status }: { status: string }) {
+  const normalized = status.toLowerCase();
   return (
-    <span className={`status-badge status-${status.toLowerCase()}`}>
+    <span className={`status-badge status-${normalized}`}>
       {status.replaceAll("_", " ")}
     </span>
   );
@@ -27,10 +32,8 @@ function formatDate(value: string) {
 }
 function Evidence({
   citations,
-  warnings,
 }: {
   citations: EvidenceCitation[];
-  warnings: string[];
 }) {
   return (
     <>
@@ -50,11 +53,6 @@ function Evidence({
           </details>
         </div>
       ))}
-      {warnings.map((warning, index) => (
-        <p className="warning-text" key={index}>
-          Timing note: {warning}
-        </p>
-      ))}
     </>
   );
 }
@@ -63,29 +61,44 @@ function Exclusion({ item }: { item: ExclusionEvaluation }) {
     <article className="finding">
       <div className="finding-label">
         {item.triggered ? "Triggered non-indication" : "Policy check"}
-        {!item.triggered && <StatusBadge status={item.status} />}
+        {!item.triggered && <StatusBadge status="NOT_TRIGGERED" />}
       </div>
       <h3>{item.explanation || "Policy non-indication"}</h3>
-      <Evidence citations={item.evidence} warnings={item.temporal_warnings} />
+      <Evidence citations={item.evidence} />
     </article>
   );
 }
-function ClinicalEvidence({ criteria }: { criteria: CriterionEvaluation[] }) {
+function RelevantCriteria({
+  criteria,
+  sourceDateNotes,
+}: {
+  criteria: PrimaryCriterion[];
+  sourceDateNotes: string[];
+}) {
   return (
     <section className="surface">
       <div className="section-heading">
-        <h2>Clinical evidence</h2>
-        <span className="count">{criteria.length} evaluated</span>
+        <h2>Relevant policy criteria</h2>
+        <span className="count">{criteria.length} shown</span>
       </div>
+      {sourceDateNotes.length > 0 && (
+        <div className="section-body source-date-notes">
+          {sourceDateNotes.map((note, index) => (
+            <p className="warning-text" key={index}>
+              Source-date note: {note}
+            </p>
+          ))}
+        </div>
+      )}
       {criteria.length === 0 ? (
         <p className="empty-copy">
-          No clinical evidence evaluations were returned.
+          No relevant policy criteria were selected for primary display.
         </p>
       ) : (
         criteria.map((item) => (
           <article className="evidence-row" key={item.criterion_id}>
             <div>
-              <StatusBadge status={item.status} />
+              <StatusBadge status={item.display_status as DisplayStatus} />
             </div>
             <div>
               <h3>{item.description || "Policy requirement"}</h3>
@@ -95,10 +108,7 @@ function ClinicalEvidence({ criteria }: { criteria: CriterionEvaluation[] }) {
                     ? "Not documented"
                     : "No explanation provided.")}
               </p>
-              <Evidence
-                citations={item.evidence}
-                warnings={item.temporal_warnings}
-              />
+              <Evidence citations={item.evidence} />
             </div>
           </article>
         ))
@@ -106,34 +116,54 @@ function ClinicalEvidence({ criteria }: { criteria: CriterionEvaluation[] }) {
     </section>
   );
 }
-function MissingRequirements({ result }: { result: AnalysisResponse }) {
+function MissingRequirements({
+  missingItems,
+  reviewItems,
+}: {
+  missingItems: { criterion_id: string; description: string; detail?: string }[];
+  reviewItems: AnalysisResponse["review_items"];
+}) {
   return (
     <section className="surface">
       <div className="section-heading">
         <h2>Missing or unclear documentation</h2>
       </div>
       <div className="section-body">
-        {result.missing_items.length === 0 &&
-          result.review_items.length === 0 && (
-            <p className="muted">
-              No missing or review items were returned by the analysis.
-            </p>
-          )}
-        {result.missing_items.map((item, index) => (
+        {missingItems.length === 0 && reviewItems.length === 0 && (
+          <p className="muted">
+            No missing or review items were returned by the analysis.
+          </p>
+        )}
+        {missingItems.map((item, index) => (
           <div className="requirement" key={`missing-${index}`}>
-            <StatusBadge status="MISSING" />
-            <p>{item.description}</p>
+            <StatusBadge
+              status={
+                /affirmatively not met/i.test(item.description)
+                  ? "NOT_SATISFIED"
+                  : "MISSING"
+              }
+            />
+            <div>
+              <p>{item.description}</p>
+              {item.detail && <p className="muted">{item.detail}</p>}
+            </div>
           </div>
         ))}
-        {result.review_items.map((item, index) => (
-          <div className="requirement" key={`review-${index}`}>
-            <span className="status-badge status-unclear">REVIEW</span>
-            <p>{item.description}</p>
-            {item.explanation !== item.description && (
-              <p className="muted">{item.explanation}</p>
-            )}
-          </div>
-        ))}
+        {reviewItems.map((item, index) => {
+          const explanation =
+            item.explanation &&
+            item.explanation !== item.description &&
+            !item.description.includes(item.explanation)
+              ? item.explanation
+              : null;
+          return (
+            <div className="requirement" key={`review-${index}`}>
+              <span className="status-badge status-unclear">REVIEW</span>
+              <p>{item.description}</p>
+              {explanation && <p className="muted">{explanation}</p>}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -161,6 +191,10 @@ export default function ReviewWorkspace({
 }) {
   const triggered = result.exclusions.filter((item) => item.triggered);
   const otherChecks = result.exclusions.filter((item) => !item.triggered);
+  const curated = curateResultView(result);
+  const showRelevant =
+    result.matching_policy_criteria_found &&
+    result.overall_status !== "NOT_APPLICABLE";
   return (
     <>
       <div className="page-heading review-heading">
@@ -229,32 +263,37 @@ export default function ReviewWorkspace({
       )}
       <div className="review-grid">
         <div className="review-main">
-          <ClinicalEvidence criteria={result.criteria} />
-          <details className="surface disclosure">
-            <summary>
-              All policy criteria{" "}
-              <span className="count">{result.criteria.length}</span>
-            </summary>
-            <div className="section-body">
-              <p className="muted small">
-                Evaluated conditions from the uploaded policy.
-              </p>
-              {result.criteria.map((item) => (
-                <div className="policy-condition" key={item.criterion_id}>
-                  <span className="eyebrow">CONDITION</span>
-                  <p>{item.description || item.explanation}</p>
-                  <StatusBadge status={item.status} />
-                </div>
-              ))}
-            </div>
-          </details>
+          {showRelevant && (
+            <RelevantCriteria
+              criteria={curated.primaryCriteria}
+              sourceDateNotes={curated.sourceDateNotes}
+            />
+          )}
+          {result.matching_policy_criteria_found && (
+            <details className="surface disclosure">
+              <summary>
+                View all policy criteria{" "}
+                <span className="count">{result.criteria.length}</span>
+              </summary>
+              <div className="section-body">
+                <p className="muted small">
+                  Complete evaluated conditions from the uploaded policy.
+                </p>
+                {result.criteria.map((item) => (
+                  <div className="policy-condition" key={item.criterion_id}>
+                    <span className="eyebrow">CONDITION</span>
+                    <p>{item.description || item.explanation}</p>
+                    <StatusBadge status={item.status} />
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
           {otherChecks.length > 0 && (
             <details className="surface disclosure">
               <summary>
-                View all policy checks{" "}
-                <span className="count">
-                  {otherChecks.length} not triggered
-                </span>
+                View non-triggered policy checks{" "}
+                <span className="count">{otherChecks.length}</span>
               </summary>
               <div className="section-body">
                 {otherChecks.map((item) => (
@@ -268,10 +307,17 @@ export default function ReviewWorkspace({
           <section className="surface next-step">
             <h2>Recommended next step</h2>
             <p>
-              {result.next_step || "No next step was provided by the analysis."}
+              {curated.nextStep ||
+                result.next_step ||
+                "No next step was provided by the analysis."}
             </p>
           </section>
-          <MissingRequirements result={result} />
+          {result.matching_policy_criteria_found && (
+            <MissingRequirements
+              missingItems={curated.missingItems}
+              reviewItems={curated.reviewItems}
+            />
+          )}
         </aside>
       </div>
       <p className="disclaimer">

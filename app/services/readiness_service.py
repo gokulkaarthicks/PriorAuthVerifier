@@ -73,6 +73,7 @@ class ReadinessService:
                 missing_items=[],
                 review_items=[],
                 next_step=_NEXT_STEP_NOT_APPLICABLE,
+                criteria_tree=None,
             )
 
         if evidence_analysis is None or evidence_analysis.skipped:
@@ -167,6 +168,7 @@ class ReadinessService:
             missing_items=missing_items,
             review_items=review_items,
             next_step=next_step,
+            criteria_tree=criteria_tree.root,
         )
         metrics = get_request_metrics()
         if metrics is not None:

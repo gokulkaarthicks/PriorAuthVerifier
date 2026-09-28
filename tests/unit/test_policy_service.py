@@ -192,7 +192,7 @@ async def test_policy_prompt_is_deterministic_and_non_duplicative(
     assert "bm25" not in system_prompt.lower()
     assert "rerank" not in system_prompt.lower()
     assert "think step by step" not in system_prompt.lower()
-    assert "procedure_name: Example Procedure" in user_prompt
+    assert "procedure_name: example procedure" in user_prompt
     assert "cpt_code: 12345" in user_prompt
     assert "Extract the governing medical-necessity criteria" in user_prompt
     assert user_prompt.count("Extract the governing medical-necessity criteria") == 1
@@ -255,7 +255,7 @@ async def test_unified_policy_prompt_targets_procedure_not_payer(
     assert "payer" in system_prompt.lower()
     assert "publisher" in system_prompt.lower()
     assert call.kwargs["response_model"] is SolPolicyCriteriaResult
-    assert "procedure_name: Example Procedure" in user_prompt
+    assert "procedure_name: example procedure" in user_prompt
     assert "cpt_code: 12345" in user_prompt
     assert "POLICY CONTEXT P1" in user_prompt
     assert "chunk_id:" not in user_prompt

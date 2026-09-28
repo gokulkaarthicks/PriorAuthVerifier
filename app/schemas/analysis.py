@@ -10,6 +10,7 @@ from app.schemas.evaluation import (
     CriterionEvaluation,
     ExclusionEvaluation,
 )
+from app.schemas.policy import CriterionNode
 from app.schemas.procedure import ProcedureExtraction
 
 
@@ -54,3 +55,5 @@ class AnalysisResponse(BaseModel):
     missing_items: list[MissingItem] = Field(default_factory=list)
     review_items: list[ReviewItem] = Field(default_factory=list)
     next_step: str = ""
+    # Existing evaluated tree for presentation/audit only; not used in readiness.
+    criteria_tree: CriterionNode | None = None

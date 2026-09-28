@@ -496,9 +496,14 @@ main {
   color: #276546;
 }
 .status-not_ready,
-.status-missing {
+.status-missing,
+.status-not_satisfied {
   background: #fae7e3;
   color: #9b3c32;
+}
+.status-not_triggered {
+  background: #eef1f5;
+  color: #596a7f;
 }
 .status-unclear,
 .status-needs_review {

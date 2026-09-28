@@ -327,12 +327,45 @@ def test_policy_queries_include_cpt_in_bm25_and_governing_rerank() -> None:
     bm25_query = service.policy_bm25_query(procedure)
     dense_query = service.policy_dense_query(procedure)
     rerank_query = service.policy_rerank_query(procedure)
-    assert bm25_query == "Example Procedure 12345"
-    assert "12345" not in dense_query
-    assert "Example Procedure" in dense_query
+    assert bm25_query == "12345 example procedure"
+    assert "12345" in dense_query
+    assert "example procedure" in dense_query
     assert "Medical necessity" in dense_query
     assert "governing this exact planned procedure" in rerank_query
-    assert "Example Procedure CPT 12345" in rerank_query
+    assert "CPT 12345 (example procedure)" in rerank_query
+
+
+def test_policy_retrieval_queries_stable_across_luna_wording() -> None:
+    service = RetrievalService(
+        embedding_service=_embedding_service(),
+        settings=_settings(),
+    )
+    variants = [
+        "Permanent Cardiac Pacemaker Implantation",
+        "Permanent Pacemaker Implantation",
+        "Permanent Cardiac Pacemaker Implantation ventricular",
+    ]
+    queries = [
+        (
+            service.policy_bm25_query(
+                ProcedureExtraction(procedure_name=name, cpt_code="33207")
+            ),
+            service.policy_dense_query(
+                ProcedureExtraction(procedure_name=name, cpt_code="33207")
+            ),
+            service.policy_rerank_query(
+                ProcedureExtraction(procedure_name=name, cpt_code="33207")
+            ),
+        )
+        for name in variants
+    ]
+    assert len(set(queries)) == 1
+    bm25, dense, rerank = queries[0]
+    assert bm25.startswith("33207 ")
+    assert "CPT 33207" in dense
+    assert "CPT 33207" in rerank
+    assert "cardiac" not in bm25
+    assert "ventricular" not in bm25
 
 
 def test_policy_bm25_and_dense_helpers_respect_corpus_scope() -> None:
@@ -706,6 +739,8 @@ def test_expand_keeps_continuation_across_running_headers() -> None:
         settings=_settings(SECTION_NEIGHBOR_WINDOW=1),
     )
     # 1745/1746 were rejected by rerank but remain structural continuation.
+    # Associated non-indications (1747) must also enter via hierarchy even when
+    # excluded from rerank top-K.
     expanded = service.expand_section_context(
         [sections[1]],
         sections,
@@ -715,7 +750,7 @@ def test_expand_keeps_continuation_across_running_headers() -> None:
     assert "s1744" in expanded_ids
     assert "s1745" in expanded_ids
     assert "s1746" in expanded_ids
-    assert "s1747" not in expanded_ids
+    assert "s1747" in expanded_ids
 
 
 def test_expand_from_topic_anchor_recovers_full_crid_block() -> None:
@@ -800,10 +835,11 @@ def test_expand_from_topic_anchor_recovers_full_crid_block() -> None:
     assert "s1742" in expanded_ids
     assert "s1744" in expanded_ids
     assert "s1745" in expanded_ids
-    assert "s1747" not in expanded_ids
+    assert "s1747" in expanded_ids
     joined = "\n".join(section.text for section in expanded)
     assert "Sinus bradycardia at rate <50 beats per minute" in joined
     assert "Sinus pauses >3 seconds" in joined
+    assert "Permanent pacemaker implantation is not indicated" in joined
 
 
 def test_expand_never_pulls_distant_same_named_headings() -> None:

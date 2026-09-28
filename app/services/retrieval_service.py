@@ -58,6 +58,54 @@ _REFERENCES_RE = re.compile(r"^references?\b", re.IGNORECASE)
 _MAX_CONTINUATION_PAGE_GAP = 3
 _MAX_CONTINUATION_SECTIONS = 12
 
+# Stable policy-retrieval naming: drop Luna-optional wording without
+# hardcoding payer/procedure/CPT identifiers.
+_RETRIEVAL_NAME_STOPWORDS = frozenset(
+    {
+        "the",
+        "and",
+        "for",
+        "with",
+        "of",
+        "a",
+        "an",
+        "to",
+        "in",
+        "on",
+        "or",
+        "via",
+        "using",
+    }
+)
+_OPTIONAL_NAME_MODIFIERS = frozenset(
+    {
+        "cardiac",
+        "planned",
+        "elective",
+        "recommended",
+        "proposed",
+        "scheduled",
+    }
+)
+_PROCEDURE_ACTION_TOKENS = frozenset(
+    {
+        "implantation",
+        "implant",
+        "replacement",
+        "insertion",
+        "repair",
+        "ablation",
+        "excision",
+        "resection",
+        "reconstruction",
+        "arthroplasty",
+        "transplant",
+        "transplantation",
+        "angioplasty",
+        "stenting",
+    }
+)
+
 
 class RetrievalService:
     """Section narrowing, dense ranking, and procedure chunk hybrid retrieval."""
@@ -623,7 +671,9 @@ class RetrievalService:
 
         by_id = {section.id: index for index, section in enumerate(all_sections)}
         heading_counts = self._heading_frequency(all_sections)
-        procedure_tokens = self._procedure_topic_tokens(procedure.procedure_name)
+        procedure_tokens = self._procedure_topic_tokens(
+            self.normalize_procedure_name_for_retrieval(procedure.procedure_name)
+        )
 
         primary_majors: set[str] = set()
         primary_topic_stems: set[str] = set()
@@ -1045,13 +1095,23 @@ class RetrievalService:
         section_crid = heading_crid or self._section_text_crid(section)
         if section_crid is not None:
             if anchor_crid is None:
-                # Unknown governing CRID: any CRID starts a new topic block.
-                return True
+                # Unknown governing CRID: any CRID starts a new topic block
+                # unless this is an associated non-indication/exclusion for
+                # the same procedure topic (must not require rerank top-K).
+                return not self._is_associated_nonindication_or_exclusion(
+                    section, selected=selected
+                )
             anchor_major = anchor_crid.split(".", 1)[0]
             section_major = section_crid.split(".", 1)[0]
             # Same major CRID (identity line, Indications heading, etc.) stays
             # inside the contiguous governing block.
-            return section_major != anchor_major
+            if section_major == anchor_major:
+                return False
+            # Associated non-indications / exclusions share the procedure topic
+            # but often use a sibling major CRID; include them structurally.
+            return not self._is_associated_nonindication_or_exclusion(
+                section, selected=selected
+            )
 
         if self._is_running_header(section, heading_counts):
             return False
@@ -1059,12 +1119,34 @@ class RetrievalService:
             return False
         if self._is_internal_topic_heading(heading):
             return False
+        # Untitled / non-CRID non-indication companions for the selected topic.
+        if self._is_associated_nonindication_or_exclusion(section, selected=selected):
+            return False
         # Inside a known CRID topic block, non-CRID titled sections (code
         # tables, metadata) continue until a different major CRID/References.
         if anchor_crid is not None:
             return False
         # Without a governing CRID, a distinct titled section is a peer topic.
         return bool(heading)
+
+    def _is_associated_nonindication_or_exclusion(
+        self,
+        section: Section,
+        *,
+        selected: Section,
+    ) -> bool:
+        """True when section is a same-topic non-indication/exclusion companion."""
+        if not self._looks_like_nonindication_or_exclusion(section):
+            return False
+        selected_stem = self._procedure_topic_stem(
+            selected.heading or (selected.text or "")[:120]
+        )
+        candidate_stem = self._procedure_topic_stem(
+            section.heading or (section.text or "")[:120]
+        )
+        if not selected_stem or not candidate_stem:
+            return False
+        return self._topic_stems_compatible(selected_stem, candidate_stem)
 
     def sections_to_retrieval_results(
         self,
@@ -1109,24 +1191,66 @@ class RetrievalService:
         """Query for cross-encoder reranking of procedure chunk candidates."""
         return _PROCEDURE_RERANK_QUERY
 
+    @staticmethod
+    def normalize_procedure_name_for_retrieval(name: str | None) -> str:
+        """Stabilize Luna procedure wording for policy retrieval queries.
+
+        Keeps CPT identity dominant by normalizing optional descriptors and
+        trailing anatomic qualifiers after the primary action noun. Does not
+        hardcode payer, CRID, or procedure-family identifiers.
+        """
+        raw = re.sub(r"\([^)]*\)", " ", (name or "").strip())
+        tokens = [token.lower() for token in _TOKEN_RE.findall(raw)]
+        if not tokens:
+            return ""
+        last_action = max(
+            (
+                index
+                for index, token in enumerate(tokens)
+                if token in _PROCEDURE_ACTION_TOKENS
+            ),
+            default=-1,
+        )
+        if last_action >= 0:
+            tokens = tokens[: last_action + 1]
+        filtered = [
+            token
+            for token in tokens
+            if token not in _RETRIEVAL_NAME_STOPWORDS
+            and token not in _OPTIONAL_NAME_MODIFIERS
+        ]
+        return " ".join(filtered)
+
     def policy_bm25_query(self, procedure: ProcedureExtraction) -> str:
-        """Lexical BM25 query: procedure name plus CPT when present."""
-        name = (procedure.procedure_name or "").strip()
+        """Lexical BM25 query: CPT (when present) plus normalized procedure name."""
+        name = self.normalize_procedure_name_for_retrieval(procedure.procedure_name)
         cpt = (procedure.cpt_code or "").strip()
         if name and cpt:
-            return f"{name} {cpt}"
-        return name or cpt
+            return f"{cpt} {name}"
+        return cpt or name
 
     def policy_dense_query(self, procedure: ProcedureExtraction) -> str:
         """Dense query for BGE-M3 ranking over policy candidate sections."""
-        name = (procedure.procedure_name or "").strip()
-        return f"{name}. {_POLICY_DENSE_SUFFIX}"
+        name = self.normalize_procedure_name_for_retrieval(procedure.procedure_name)
+        cpt = (procedure.cpt_code or "").strip()
+        if cpt and name:
+            label = f"CPT {cpt} {name}"
+        elif cpt:
+            label = f"CPT {cpt}"
+        else:
+            label = name
+        return f"{label}. {_POLICY_DENSE_SUFFIX}"
 
     def policy_rerank_query(self, procedure: ProcedureExtraction) -> str:
         """Cross-encoder query for selecting governing policy sections."""
-        name = (procedure.procedure_name or "").strip()
+        name = self.normalize_procedure_name_for_retrieval(procedure.procedure_name)
         cpt = (procedure.cpt_code or "").strip()
-        procedure_label = f"{name} CPT {cpt}" if cpt else name
+        if cpt and name:
+            procedure_label = f"CPT {cpt} ({name})"
+        elif cpt:
+            procedure_label = f"CPT {cpt}"
+        else:
+            procedure_label = name
         return _POLICY_RERANK_TEMPLATE.format(procedure=procedure_label)
 
     def policy_section_retrieval_text(self, section: Section) -> str:

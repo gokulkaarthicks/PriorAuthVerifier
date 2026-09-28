@@ -212,9 +212,9 @@ Latest results from this workspace:
 |---|---|
 | `ruff check .` | passed |
 | `mypy app` | passed |
-| `pytest` | 303 passed, 4 skipped |
+| `pytest` | 304 passed, 4 skipped |
 | `npm run build` | passed |
-| `npm test` | 19 passed, 1 skipped (opt-in live UHC test) |
+| `npm test` | 22 passed, 1 skipped (opt-in live UHC test) |
 
 Frontend browser tests mock the API unless `RUN_LIVE_UHC=1` is set.
 
@@ -238,7 +238,7 @@ infrastructure that is not required for the workflow.
 ## Limitations
 
 **Cold-run latency.** Large unseen policies are expensive. On the provided
-~3,655-page policy, a cold analysis took roughly four minutes on the development
+~3,655-page policy, a cold analysis took roughly roughly 4-6 minutes on the development
 machine. Main costs: CPU cross-encoder evidence reranking, GPT-6 Sol policy
 extraction, and policy parsing/candidate embedding to a lesser extent.
 

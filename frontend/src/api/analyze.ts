@@ -91,7 +91,10 @@ export function isAnalysis(value: unknown): value is AnalysisResponse {
         typeof item.criterion_id === "string" &&
         typeof item.description === "string" &&
         typeof item.explanation === "string",
-    )
+    ) &&
+    (value.criteria_tree === null ||
+      value.criteria_tree === undefined ||
+      record(value.criteria_tree))
   );
 }
 

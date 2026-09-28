@@ -21,7 +21,7 @@ function job(id: string, status: JobSummary["status"] = "QUEUED"): JobDetail {
     policy_filename: "policy.pdf",
     procedure_name:
       status === "COMPLETED" ? result.procedure.procedure_name : null,
-    cpt_code: status === "COMPLETED" ? "33208" : null,
+    cpt_code: status === "COMPLETED" ? "33207" : null,
     overall_status: status === "COMPLETED" ? result.overall_status : null,
     error_message: status === "FAILED" ? "SECRET provider traceback" : null,
     result: status === "COMPLETED" ? result : null,
@@ -189,14 +189,47 @@ test("review/back/new/reload retain server history and open the correct result",
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page.getByText("33208", { exact: true })).toBeVisible();
+  await expect(page.getByText("33207", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Blocking policy findings" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Patient chart · Page 4 · Nov 12, 2025"),
+    page.getByRole("heading", { name: "Relevant policy criteria" }),
   ).toBeVisible();
-  const quote = page.getByText(
+  await expect(
+    page.getByRole("heading", {
+      name: "Heart rate below 50 beats per minute",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".review-main > .surface").first(),
+  ).not.toContainText("Mobitz II AV block");
+  await expect(
+    page.locator(".review-main > .surface").first(),
+  ).not.toContainText("Associated conduction disorder, with or without symptoms");
+  await expect(
+    page.locator(".review-main > .surface").first(),
+  ).not.toContainText(
+    "Progressive neuromuscular disease known to involve the heart",
+  );
+  await expect(
+    page.locator(".review-aside"),
+  ).not.toContainText("Associated conduction disorder, with or without symptoms");
+  await expect(
+    page.locator(".review-aside"),
+  ).not.toContainText(
+    "Progressive neuromuscular disease known to involve the heart",
+  );
+  await expect(
+    page.getByText("Patient chart · Page 4 · Nov 12, 2025").first(),
+  ).toBeVisible();
+  await expect(page.getByText("Source-date note:")).toBeVisible();
+  await expect(page.locator(".source-date-notes .warning-text")).toHaveCount(1);
+  await expect(page.locator(".source-date-notes")).toContainText(
+    "The chart contains conflicting dates for some clinical records",
+  );
+  await expect(page.locator(".evidence-row .warning-text")).toHaveCount(0);
+  const quote = page.locator(".blocking").getByText(
     "“Patient remains fully asymptomatic with no functional limitation.”",
     { exact: true },
   );
@@ -204,6 +237,57 @@ test("review/back/new/reload retain server history and open the correct result",
   await page.locator(".blocking summary").click();
   await expect(quote).toBeVisible();
   await expect(page.locator("body")).not.toContainText("internal-");
+  await expect(
+    page.getByText("View all policy criteria"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("View non-triggered policy checks"),
+  ).toBeVisible();
+  await expect(page.getByText("NOT TRIGGERED")).not.toBeVisible();
+  await page.getByText("View non-triggered policy checks").click();
+  await expect(page.getByText("NOT TRIGGERED")).toBeVisible();
+  await page.getByText("View all policy criteria").click();
+  await expect(
+    page.locator(".disclosure").filter({ hasText: "View all policy criteria" }),
+  ).toContainText("Mobitz II AV block");
+  await expect(
+    page.locator(".disclosure").filter({ hasText: "View all policy criteria" }),
+  ).toContainText("Associated conduction disorder, with or without symptoms");
+  await expect(
+    page.locator(".disclosure").filter({ hasText: "View all policy criteria" }),
+  ).toContainText(
+    "Progressive neuromuscular disease known to involve the heart",
+  );
+  await expect(
+    page.getByText("Missing or unclear documentation"),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Qualifying symptoms attributable to sinus node dysfunction are not established.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.locator(".review-aside"),
+  ).toContainText("No Attributable syncope or presyncope");
+  await expect(
+    page.locator(".review-aside"),
+  ).not.toContainText("Attributable syncope or presyncope is not documented.");
+  await expect(
+    page.locator(".review-aside").getByText("Policy non-indication triggered"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Recommended next step" })).toBeVisible();
+  await expect(page.locator(".next-step")).toContainText(
+    "Qualifying symptoms attributable to sinus node dysfunction",
+  );
+  await expect(page.locator(".next-step")).toContainText(
+    "add that evidence before submission",
+  );
+  await expect(page.locator(".next-step")).toContainText(
+    "policy non-indication remains blocking",
+  );
+  await expect(page.locator(".next-step")).not.toContainText(
+    "Manual review is required because a policy non-indication is documented.",
+  );
   await page
     .getByRole("button", { name: "← Back to Prior Authorization cases" })
     .click();
@@ -219,7 +303,7 @@ test("review/back/new/reload retain server history and open the correct result",
     page.getByRole("button", { name: "Review alice.pdf" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Review alice.pdf" }).click();
-  await expect(page.getByText("33208", { exact: true })).toBeVisible();
+  await expect(page.getByText("33207", { exact: true })).toBeVisible();
 });
 
 test("capacity returns after completion and polling stops once idle", async ({
@@ -278,9 +362,10 @@ for (const status of [
       ...result,
       overall_status: status,
       matching_policy_criteria_found: status !== "NOT_APPLICABLE",
-      exclusions: [],
-      criteria: [],
-      missing_items: [],
+      exclusions: status === "NOT_APPLICABLE" ? [] : result.exclusions,
+      criteria: status === "NOT_APPLICABLE" ? [] : result.criteria,
+      missing_items: status === "NOT_APPLICABLE" ? [] : result.missing_items,
+      review_items: status === "NOT_APPLICABLE" ? [] : result.review_items,
     };
     await mockQueue(page, [completed]);
     await page.goto("/");
@@ -291,10 +376,14 @@ for (const status of [
     await expect(page.locator(".outcome .status-badge")).toHaveText(
       status.replaceAll("_", " "),
     );
-    if (status === "NOT_APPLICABLE")
+    if (status === "NOT_APPLICABLE") {
       await expect(
         page.getByRole("heading", { name: "No matching procedure criteria" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Relevant policy criteria" }),
+      ).not.toBeVisible();
+    }
   });
 }
 for (const code of [400, 422, 413, 429, 500, 502, 503]) {
@@ -361,7 +450,7 @@ test("mobile queue and review fit; source disclosures are keyboard accessible", 
   await disclosure.focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByText(
+    page.locator(".blocking").getByText(
       "“Patient remains fully asymptomatic with no functional limitation.”",
     ),
   ).toBeVisible();

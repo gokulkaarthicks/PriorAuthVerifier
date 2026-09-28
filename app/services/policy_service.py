@@ -322,12 +322,14 @@ class PolicyService:
             if not chunks:
                 return [], None
 
-            section_rank = {
-                section.id: index for index, section in enumerate(governing_sections)
+            # Canonical document order (expansion already sorted by section
+            # index). Do not re-order by cross-encoder seed rank.
+            section_order = {
+                section.id: index for index, section in enumerate(expanded)
             }
             chunks.sort(
                 key=lambda chunk: (
-                    section_rank.get(chunk.section_id, 10**9),
+                    section_order.get(chunk.section_id, 10**9),
                     chunk.chunk_index,
                 )
             )
@@ -470,6 +472,17 @@ class PolicyService:
                 list(candidates),
                 get_id=lambda item: item.chunk.id,
                 get_text=lambda item: item.chunk.text,
+            )
+            # Stable canonical document order so identical section sets pack
+            # identically regardless of retrieval/seed ranking order.
+            deduped.sort(
+                key=lambda item: (
+                    item.chunk.page_number or 0,
+                    item.chunk.end_page_number or item.chunk.page_number or 0,
+                    (item.chunk.heading or "").casefold(),
+                    item.chunk.chunk_index,
+                    item.chunk.text,
+                )
             )
         # Input packing budget is independent of the completion ceiling.
         max_input = self._settings.POLICY_LLM_MAX_CONTEXT_TOKENS
@@ -723,9 +736,14 @@ class PolicyService:
         write_debug_trace("policy_reranked.json", entries)
 
     def _build_prompt_prefix(self, procedure: ProcedureExtraction) -> str:
+        # Use retrieval-stable procedure wording so identical section sets pack
+        # to identical Sol prompts; response still exposes Luna's raw name.
+        stable_name = RetrievalService.normalize_procedure_name_for_retrieval(
+            procedure.procedure_name
+        ) or (procedure.procedure_name or "").strip()
         return "\n".join(
             [
-                f"procedure_name: {procedure.procedure_name}",
+                f"procedure_name: {stable_name}",
                 f"cpt_code: {procedure.cpt_code}",
                 "",
                 "Extract the governing medical-necessity criteria from the "

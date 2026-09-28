@@ -887,13 +887,14 @@ def test_crid7_topic_anchor_recovers_full_block_in_policy_sol_context() -> None:
         item.chunk.section_id for item in prepared.candidates if item.chunk.section_id
     }
 
-    # Parent topic + intermediate metadata/code-table + governing indications.
+    # Parent topic + intermediate metadata/code-table + governing indications
+    # + associated non-indications (must not require independent rerank survival).
     assert "s1739" in section_ids
     assert "s1740" in section_ids
     assert "s1742" in section_ids
     assert "s1744" in section_ids
+    assert "s1747" in section_ids
     assert "Indications for Permanent Pacemaker (CRID-7)" in joined
     assert "Sinus bradycardia at rate <50 beats per minute" in joined
     assert "Sinus pauses >3 seconds" in joined
-    # Different CRID topic must not leak in as CRID-7 continuation.
-    assert "s1747" not in section_ids
+    assert "asymptomatic SND" in joined
